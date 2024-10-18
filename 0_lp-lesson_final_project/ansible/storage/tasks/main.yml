@@ -1,0 +1,53 @@
+---
+# tasks file for storage
+#
+- name: Set timezone to Europe/Moscow
+  become: yes
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: install nfs-server
+  ansible.builtin.apt:
+    name: 
+      - nfs-kernel-server
+    state: present
+    update_cache: true
+
+- name: create storage directory
+  ansible.builtin.file:
+    path: /storage/webserver
+    state: directory
+
+- name: copy exports file
+  ansible.builtin.template:
+    src: exports.j2
+    dest: "/etc/exports"
+    owner: root
+    group: root
+    mode: "u=rw,g=r,o=r"
+
+- name: exportfs -a
+  ansible.builtin.shell: exportfs -a
+
+- name: edit rsyslog config
+  tags: edit_rsyslog_config
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    line: "*.* @@192.168.56.70:514"
+    state: present
+  notify: restart rsyslog
+
+- name: install zabbix-agent
+  tags: install_zabbix_agent
+  ansible.builtin.apt:
+    name: zabbix-agent
+    state: present
+    update_cache: true
+
+- name: import zabbix-agent config
+  tags: install_zabbix_agent
+  ansible.builtin.template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+  notify: restart zabbix-agent
+

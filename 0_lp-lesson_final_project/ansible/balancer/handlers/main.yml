@@ -1,0 +1,17 @@
+---
+# handlers file for balancer
+
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+
+- name: restore iptables rules
+  community.general.iptables_state:
+    state: restored
+    path: /etc/iptables/rules.v4
+
+- name: restart zabbix-agent
+  ansible.builtin.service:
+    name: zabbix-agent
+    state: restarted

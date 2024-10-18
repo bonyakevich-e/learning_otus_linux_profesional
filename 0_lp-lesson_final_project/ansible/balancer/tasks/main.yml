@@ -1,0 +1,76 @@
+---
+# tasks file for balancer
+#
+- name: Set timezone to Europe/Moscow
+  become: yes
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: install iptables-persistent
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+    update_cache: true
+
+- name: include vars 
+  ansible.builtin.include_vars: 
+    file: baltbereg_com.pem.yml
+
+- name: install haproxy
+  ansible.builtin.apt: 
+    name: 
+      - haproxy
+    state: present
+    update_cache: true
+
+- name: Copy private SSL certificates from Ansible Vault
+  ansible.builtin.copy:
+    content: "{{ ssl_certificate }}"
+    dest: "/etc/ssl/private/baltbereg.com.pem"
+    owner: root
+    group: root
+    mode: "u=rw,g=r,o="
+
+- name: Copy haproxy.cfg
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "/etc/haproxy/haproxy.cfg"
+    owner: root
+    group: root
+    mode: "u=rw,g=r,o=r"
+
+- name: restart haproxy
+  ansible.builtin.service:
+    name: haproxy
+    state: restarted
+    enabled: true
+
+- name: edit rsyslog config
+  tags: edit_rsyslog_config
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    line: "*.* @@192.168.56.70:514"
+    state: present
+  notify: restart rsyslog
+
+- name: import iptables rules
+  ansible.builtin.template:
+    src: rules.v4
+    dest: /etc/iptables/rules.v4
+  notify: restore iptables rules
+
+- name: install zabbix-agent
+  tags: install_zabbix_agent
+  ansible.builtin.apt:
+    name: zabbix-agent
+    state: present
+    update_cache: true
+
+- name: import zabbix-agent config
+  tags: install_zabbix_agent
+  ansible.builtin.template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+  notify: restart zabbix-agent
+
+ 

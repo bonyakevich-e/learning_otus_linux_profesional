@@ -1,0 +1,94 @@
+---
+# tasks file for webserver2
+- name: Set timezone to Europe/Moscow
+  become: yes
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: install prerequisites
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - libapache2-mod-php
+      - php-gd
+      - php-mysql
+      - php-curl
+      - php-mbstring
+      - php-intl
+      - php-gmp
+      - php-bcmath
+      - php-xml
+      - php-imagick
+      - php-zip
+    state: present
+    update_cache: true
+  notify: restart apache2
+
+- name: Enable recommended apache modules
+  tags: enable_apache2_modules_web2
+  community.general.apache2_module:
+    state: present
+    name: "{{ item }}" 
+  with_items:
+      - rewrite
+      - headers
+      - env
+      - dir
+      - mime
+  notify: restart apache2
+  
+- name: enable apache2 service
+  ansible.builtin.service:
+    name: apache2
+    enabled: true
+
+- name: install nfs-common
+  ansible.builtin.apt:
+    name:
+      - nfs-common
+    state: present
+
+- name: mount storage to /var/www
+  ansible.posix.mount:
+    src: 192.168.56.30:/storage/webserver
+    path: /var/www
+    opts: rw,sync,hard
+    state: mounted
+    fstype: nfs
+
+- name: modify apache2.conf
+  ansible.builtin.template:
+    src: apache2.conf
+    dest: /etc/apache2/apache2.conf
+  notify:
+    - restart apache2
+
+- name: add vhost for nextcloud
+  ansible.builtin.template:
+    src: nextcloud.conf.j2
+    dest: /etc/apache2/sites-available/nextcloud.conf
+  notify:
+    - enable nextcloud vhost
+    - restart apache2
+      
+- name: edit rsyslog config
+  tags: edit_rsyslog_config
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    line: "*.* @@192.168.56.70:514"
+    state: present
+  notify: restart rsyslog
+
+- name: install zabbix-agent
+  tags: install_zabbix_agent
+  ansible.builtin.apt:
+    name: zabbix-agent
+    state: present
+    update_cache: true
+
+- name: import zabbix-agent config
+  tags: install_zabbix_agent
+  ansible.builtin.template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+  notify: restart zabbix-agent

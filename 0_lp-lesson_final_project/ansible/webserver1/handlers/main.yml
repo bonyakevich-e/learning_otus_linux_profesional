@@ -1,0 +1,20 @@
+---
+# handlers file for webserver1
+
+- name: enable nextcloud vhost
+  ansible.builtin.shell: /usr/sbin/a2ensite nextcloud.conf
+
+- name: restart apache2
+  ansible.builtin.service:
+    name: apache2
+    state: restarted
+
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+
+- name: restart zabbix-agent
+  ansible.builtin.service:
+    name: zabbix-agent
+    state: restarted
