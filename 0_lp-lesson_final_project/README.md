@@ -2,7 +2,7 @@
 
 #### СХЕМА ПРОЕКТА:
 
-![Схема (3)](https://github.com/user-attachments/assets/32968ef9-183d-442b-9143-2b5593e6db60)
+![Схема (3)](https://github.com/user-attachments/assets/372101fe-b04d-4dc1-8abd-3f21c487307a)
 
 #### ОПИСАНИЕ: 
 
